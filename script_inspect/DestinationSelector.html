@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <style>
+      :root {
+        --bg-page: #F8FAFC;
+        --bg-card: #FFFFFF;
+        --border-subtle: #E2E8F0;
+        --border-strong: #CBD5E1;
+        --text-main: #0F172A;
+        --text-muted: #475569;
+        --text-dim: #94A3B8;
+        
+        --color-brand: #0F9D58;
+        --color-brand-hover: #0C7A45;
+        --color-brand-light: #ECFDF5;
+        --color-brand-border: #A7F3D0;
+        --color-brand-text: #065F46;
+
+        --color-blue: #2563EB;
+        --color-blue-light: #EFF6FF;
+        --color-blue-border: #BFDBFE;
+        --color-blue-text: #1E40AF;
+
+        --color-warn: #D97706;
+        --color-warn-light: #FFFBEB;
+        --color-warn-border: #FDE68A;
+        --color-warn-text: #92400E;
+
+        --color-danger: #DC2626;
+        --color-danger-light: #FEF2F2;
+        --color-danger-border: #FECACA;
+        --color-danger-text: #991B1B;
+
+        --color-neutral-light: #F1F5F9;
+        --color-neutral-text: #334155;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: var(--bg-page);
+        color: var(--text-main);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button, input {
+        font: inherit;
+      }
+
+      .app-container {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: var(--bg-page);
+        overflow: hidden;
+      }
+
+      /* 1. TOP TELEMETRY PANEL */
+      .top-panel {
+        flex: 0 0 auto;
+        padding: 16px 24px 14px;
+        background: #FFFFFF;
+        border-bottom: 1px solid var(--border-subtle);
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .product-info {
+        min-width: 0;
+      }
+
+      .section-eyebrow {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      .product-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+        letter-spacing: -0.01em;
+      }
+
+      .meta-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .meta-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        background: var(--bg-page);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      .meta-tag strong {
+        color: var(--text-main);
+        font-weight: 700;
+      }
+
+      .telemetry-progress {
+        background: var(--bg-page);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 10px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .telemetry-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .telemetry-label {
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 11px;
+      }
+
+      .telemetry-ratio {
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--color-brand-text);
+      }
+
+      .progress-bar-track {
+        height: 7px;
+        background: #E2E8F0;
+        border-radius: 999px;
+        margin: 7px 0 6px;
+        overflow: hidden;
+      }
+
+      .progress-bar-fill {
+        height: 100%;
+        background: var(--color-brand);
+        border-radius: 999px;
+        width: 0%;
+        transition: width 240ms ease;
+      }
+
+      .telemetry-status-text {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* 2. MAIN LIST SECTION */
+      .main-section {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 14px 24px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        overflow: hidden;
+      }
+
+      .list-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .list-title {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .quick-toggle-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--color-brand);
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      .quick-toggle-btn:hover {
+        color: var(--color-brand-hover);
+      }
+
+      .destinations-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1 1 auto;
+      }
+
+      /* DESTINATION ROW */
+      .dest-row {
+        position: relative;
+        background: #FFFFFF;
+        border: 1.5px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 12px 18px;
+        display: grid;
+        grid-template-columns: 28px 125px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        cursor: pointer;
+        transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+        user-select: none;
+      }
+
+      .dest-row:hover:not(.disabled) {
+        border-color: var(--border-strong);
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+      }
+
+      .dest-row.selected {
+        border-color: var(--color-brand);
+        background: #F9FEFB;
+        box-shadow: 0 0 0 1.5px rgba(15, 157, 88, 0.25);
+      }
+
+      .dest-row.disabled {
+        background: #F8FAFC;
+        border-color: #E2E8F0;
+        cursor: not-allowed;
+        opacity: 0.65;
+      }
+
+      /* Checkbox */
+      .dest-checkbox {
+        width: 22px;
+        height: 22px;
+        border: 2px solid var(--border-strong);
+        border-radius: 5px;
+        background: #FFFFFF;
+        display: grid;
+        place-items: center;
+        color: transparent;
+        transition: all 120ms ease;
+      }
+
+      .dest-row.selected .dest-checkbox {
+        border-color: var(--color-brand);
+        background: var(--color-brand);
+        color: #FFFFFF;
+      }
+
+      .dest-checkbox svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* Sheet identity */
+      .dest-identity {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .dest-tag {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 3px 6px;
+        border-radius: 4px;
+        background: var(--color-neutral-light);
+        color: var(--color-neutral-text);
+      }
+
+      .dest-sheet-name {
+        font-size: 14.5px;
+        font-weight: 800;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Status & Details */
+      .dest-details {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
+      }
+
+      .dest-status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .status-pill.complete {
+        background: var(--color-brand-light);
+        border: 1px solid var(--color-brand-border);
+        color: var(--color-brand-text);
+      }
+
+      .status-pill.missing {
+        background: var(--color-neutral-light);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+      }
+
+      .status-pill.conflict,
+      .status-pill.incomplete {
+        background: var(--color-warn-light);
+        border: 1px solid var(--color-warn-border);
+        color: var(--color-warn-text);
+      }
+
+      .status-pill.error {
+        background: var(--color-danger-light);
+        border: 1px solid var(--color-danger-border);
+        color: var(--color-danger-text);
+      }
+
+      .dest-mapping {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Action tag on the right */
+      .dest-action-tag {
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .dest-action-tag.action-insert {
+        background: var(--color-brand-light);
+        color: var(--color-brand-text);
+        border: 1.5px solid var(--color-brand-border);
+      }
+
+      .dest-action-tag.action-update {
+        background: var(--color-blue-light);
+        color: var(--color-blue-text);
+        border: 1.5px solid var(--color-blue-border);
+      }
+
+      .dest-action-tag.action-skip {
+        background: var(--color-neutral-light);
+        color: var(--text-dim);
+        border: 1px solid var(--border-subtle);
+      }
+
+      /* Notice */
+      .notice-box {
+        display: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.35;
+        margin-top: 4px;
+      }
+
+      .notice-box.show {
+        display: block;
+      }
+
+      .notice-box.info {
+        background: var(--color-blue-light);
+        color: var(--color-blue-text);
+        border: 1px solid var(--color-blue-border);
+      }
+
+      .notice-box.success {
+        background: var(--color-brand-light);
+        color: var(--color-brand-text);
+        border: 1px solid var(--color-brand-border);
+      }
+
+      .notice-box.error {
+        background: var(--color-danger-light);
+        color: var(--color-danger-text);
+        border: 1px solid var(--color-danger-border);
+      }
+
+      /* 3. FOOTER */
+      .footer-panel {
+        flex: 0 0 auto;
+        padding: 14px 24px 16px;
+        background: #FFFFFF;
+        border-top: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .footer-left,
+      .footer-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn {
+        min-height: 40px;
+        padding: 8px 18px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 120ms ease;
+      }
+
+      .btn-secondary {
+        background: #FFFFFF;
+        border: 1.5px solid var(--border-strong);
+        color: var(--text-main);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: var(--bg-page);
+        border-color: #94A3B8;
+      }
+
+      .btn-primary {
+        background: var(--color-brand);
+        border: 1.5px solid var(--color-brand);
+        color: #FFFFFF;
+        min-width: 160px;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: var(--color-brand-hover);
+        border-color: var(--color-brand-hover);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-danger-ghost {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--color-danger-text);
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 6px;
+      }
+
+      .btn-danger-ghost:hover:not(:disabled) {
+        background: var(--color-danger-light);
+        border-color: var(--color-danger-border);
+      }
+
+      .btn-danger-ghost.confirming {
+        background: var(--color-danger-light);
+        border-color: var(--color-danger-border);
+        font-weight: 800;
+      }
+
+      .btn-danger-ghost:disabled {
+        display: none;
+      }
+
+      .spinner {
+        width: 15px;
+        height: 15px;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        border-top-color: #FFFFFF;
+        border-radius: 50%;
+        animation: spin 600ms linear infinite;
+        display: none;
+      }
+
+      .btn-primary.busy .spinner {
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container" id="appContainer">
+      <!-- TOP TELEMETRY -->
+      <header class="top-panel">
+        <div class="product-info">
+          <div class="section-eyebrow">Produk Aktif</div>
+          <div class="product-title" id="productName">-</div>
+          <div class="meta-badges">
+            <span class="meta-tag">Warna: <strong id="productColor">-</strong></span>
+            <span class="meta-tag">HPP: <strong id="productHpp">-</strong></span>
+          </div>
+        </div>
+
+        <div class="telemetry-progress">
+          <div class="telemetry-header">
+            <span class="telemetry-label">Ketersediaan di Sheet</span>
+            <span class="telemetry-ratio" id="progressRatio">0 / 4</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <div class="telemetry-status-text" id="progressText">-</div>
+        </div>
+      </header>
+
+      <!-- MAIN DESTINATION LIST -->
+      <main class="main-section">
+        <div class="list-header">
+          <span class="list-title">Daftar Sheet Tujuan</span>
+          <button type="button" class="quick-toggle-btn" id="quickToggleBtn">Pilih Semua</button>
+        </div>
+
+        <div class="destinations-wrapper" id="destList"></div>
+
+        <div class="notice-box" id="noticeBox" role="status" aria-live="polite"></div>
+      </main>
+
+      <!-- FOOTER -->
+      <footer class="footer-panel">
+        <div class="footer-left">
+          <button class="btn-danger-ghost" id="btnCancelOdoo" type="button">Batalkan Odoo</button>
+          <button class="btn btn-secondary" id="btnClose" type="button">Tutup</button>
+        </div>
+        <div class="footer-right">
+          <button class="btn btn-primary" id="btnPrimary" type="button">
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="btnPrimaryText">Kirim / Perbarui</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      let state = <?!= initialData ?>;
+      let busy = false;
+      let cancelConfirming = false;
+      let selected = new Set();
+
+      const destList = document.getElementById("destList");
+      const quickToggleBtn = document.getElementById("quickToggleBtn");
+      const noticeBox = document.getElementById("noticeBox");
+      const btnPrimary = document.getElementById("btnPrimary");
+      const btnPrimaryText = document.getElementById("btnPrimaryText");
+      const btnCancelOdoo = document.getElementById("btnCancelOdoo");
+      const btnClose = document.getElementById("btnClose");
+
+      const checkSvg =
+        '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+          '<path d="M3.2 8.2l2.7 2.7 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</svg>';
+
+      function escapeHtml(val) {
+        return String(val == null ? "" : val)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function tagForDestination(key) {
+        const tags = {
+          DESIGN1: "D1",
+          DADMIN: "DA",
+          VIDEO: "VI",
+          NEW_LINDA: "NL"
+        };
+        return tags[key] || "SH";
+      }
+
+      function initializeSelection() {
+        selected = new Set(
+          (state.destinations || [])
+            .filter(function (item) {
+              return item.selectable && item.selectedByDefault;
+            })
+            .map(function (item) {
+              return item.key;
+            })
+        );
+      }
+
+      function renderTopPanel() {
+        document.getElementById("productName").textContent = state.productName || "(Tanpa Nama)";
+        document.getElementById("productColor").textContent = state.productColor || "-";
+        document.getElementById("productHpp").textContent = state.hppDisplay || "-";
+
+        const items = state.destinations || [];
+        const completeCount = items.filter(function (d) { return d.status === "COMPLETE"; }).length;
+        const conflictCount = items.filter(function (d) { return d.status === "CONFLICT" || d.status === "INCOMPLETE"; }).length;
+        const total = items.length || 4;
+        const pct = Math.round((completeCount / total) * 100);
+
+        document.getElementById("progressRatio").textContent = completeCount + " / " + total + " (" + pct + "%)";
+        document.getElementById("progressFill").style.width = pct + "%";
+
+        const progressText = document.getElementById("progressText");
+        if (state.allComplete) {
+          progressText.textContent = "Semua sheet sudah lengkap dan sinkron.";
+        } else if (conflictCount > 0) {
+          progressText.textContent = completeCount + " tersedia • " + conflictCount + " perlu diperbarui • " + (total - completeCount - conflictCount) + " belum ada";
+        } else {
+          progressText.textContent = completeCount + " tersedia • " + (total - completeCount) + " belum ada di sheet";
+        }
+      }
+
+      function getStatusPill(status, rowNum) {
+        const rowStr = rowNum ? " • Baris " + rowNum : "";
+        switch (status) {
+          case "COMPLETE":
+            return '<span class="status-pill complete">● TERSEDIA' + escapeHtml(rowStr) + '</span>';
+          case "MISSING":
+            return '<span class="status-pill missing">○ BELUM ADA DI SHEET</span>';
+          case "CONFLICT":
+            return '<span class="status-pill conflict">▲ PERLU UPDATE' + escapeHtml(rowStr) + '</span>';
+          case "INCOMPLETE":
+            return '<span class="status-pill incomplete">▲ DATA KURANG' + escapeHtml(rowStr) + '</span>';
+          default:
+            return '<span class="status-pill error">✕ ERROR</span>';
+        }
+      }
+
+      function getActionTag(item, isSelected) {
+        if (!isSelected) {
+          return '<span class="dest-action-tag action-skip">— LEWATI</span>';
+        }
+        if (item.status === "MISSING") {
+          return '<span class="dest-action-tag action-insert">+ KIRIM BARU</span>';
+        }
+        return '<span class="dest-action-tag action-update">↻ PERBARUI</span>';
+      }
+
+      function renderList() {
+        destList.innerHTML = (state.destinations || [])
+          .map(function (item) {
+            const isSelected = selected.has(item.key);
+            const isSelectable = Boolean(item.selectable);
+            const selectedClass = isSelected ? " selected" : "";
+            const disabledClass = !isSelectable ? " disabled" : "";
+            const tag = tagForDestination(item.key);
+            const statusHtml = getStatusPill(item.status, item.row);
+            const actionTagHtml = isSelectable ? getActionTag(item, isSelected) : '<span class="dest-action-tag action-skip">TIDAK BISA DIAKSES</span>';
+
+            return (
+              '<div class="dest-row' + selectedClass + disabledClass + '" data-key="' + escapeHtml(item.key) + '">' +
+                '<div class="dest-checkbox">' + (isSelected ? checkSvg : "") + '</div>' +
+                '<div class="dest-identity">' +
+                  '<span class="dest-tag">' + escapeHtml(tag) + '</span>' +
+                  '<span class="dest-sheet-name">' + escapeHtml(item.sheetName) + '</span>' +
+                '</div>' +
+                '<div class="dest-details">' +
+                  '<div class="dest-status-row">' + statusHtml + '</div>' +
+                  '<div class="dest-mapping">' + escapeHtml(item.mapping) + '</div>' +
+                '</div>' +
+                '<div class="dest-action-container">' + actionTagHtml + '</div>' +
+              '</div>'
+            );
+          })
+          .join("");
+
+        Array.from(destList.querySelectorAll(".dest-row:not(.disabled)")).forEach(function (row) {
+          row.addEventListener("click", function () {
+            if (busy) return;
+            const key = row.dataset.key;
+            cancelConfirming = false;
+            updateCancelButton();
+
+            if (selected.has(key)) {
+              selected.delete(key);
+            } else {
+              selected.add(key);
+            }
+
+            renderList();
+            updatePrimaryButton();
+            updateQuickToggleText();
+          });
+        });
+
+        updateQuickToggleText();
+      }
+
+      function updateQuickToggleText() {
+        const selectableItems = (state.destinations || []).filter(function (d) { return d.selectable; });
+        const allSelected = selectableItems.length > 0 && selectableItems.every(function (d) { return selected.has(d.key); });
+        quickToggleBtn.textContent = allSelected ? "Batal Pilih Semua" : "Pilih Semua";
+      }
+
+      function updatePrimaryButton() {
+        const selectedItems = (state.destinations || []).filter(function (d) { return selected.has(d.key); });
+
+        if (state.allComplete && selectedItems.length === 0) {
+          btnPrimaryText.textContent = "Pastikan Selesai";
+          btnPrimary.disabled = busy;
+          return;
+        }
+
+        if (selectedItems.length === 0) {
+          btnPrimaryText.textContent = "Pilih Sheet Tujuan";
+          btnPrimary.disabled = true;
+          return;
+        }
+
+        const newItems = selectedItems.filter(function (d) { return d.status === "MISSING"; });
+        const updateItems = selectedItems.filter(function (d) { return d.status !== "MISSING"; });
+
+        if (newItems.length > 0 && updateItems.length > 0) {
+          btnPrimaryText.textContent = "Kirim (" + newItems.length + ") & Perbarui (" + updateItems.length + ")";
+        } else if (newItems.length > 0) {
+          btnPrimaryText.textContent = "Kirim " + newItems.length + " Sheet";
+        } else if (updateItems.length > 0) {
+          btnPrimaryText.textContent = "Perbarui " + updateItems.length + " Sheet";
+        } else {
+          btnPrimaryText.textContent = "Proses (" + selectedItems.length + ")";
+        }
+
+        btnPrimary.disabled = busy;
+      }
+
+      function updateCancelButton() {
+        btnCancelOdoo.disabled = !state.canCancelUpload || busy;
+        if (!state.canCancelUpload) {
+          btnCancelOdoo.textContent = "Batalkan Odoo";
+          btnCancelOdoo.classList.remove("confirming");
+          return;
+        }
+        btnCancelOdoo.textContent = cancelConfirming ? "Konfirmasi Batalkan Odoo?" : "Batalkan Odoo";
+        btnCancelOdoo.classList.toggle("confirming", cancelConfirming);
+      }
+
+      function render() {
+        renderTopPanel();
+        renderList();
+        updatePrimaryButton();
+        updateCancelButton();
+        updateQuickToggleText();
+      }
+
+      function setBusy(value) {
+        busy = value;
+        btnPrimary.classList.toggle("busy", value);
+        btnClose.disabled = value;
+        updatePrimaryButton();
+        updateCancelButton();
+      }
+
+      function showNotice(msg, kind) {
+        noticeBox.textContent = msg || "";
+        noticeBox.className = "notice-box show " + (kind || "info");
+      }
+
+      function clearNotice() {
+        noticeBox.textContent = "";
+        noticeBox.className = "notice-box";
+      }
+
+      function closeDialog() {
+        if (!busy) {
+          google.script.host.close();
+        }
+      }
+
+      quickToggleBtn.addEventListener("click", function () {
+        if (busy) return;
+        const selectableItems = (state.destinations || []).filter(function (d) { return d.selectable; });
+        const allSelected = selectableItems.length > 0 && selectableItems.every(function (d) { return selected.has(d.key); });
+
+        if (allSelected) {
+          selected.clear();
+        } else {
+          selectableItems.forEach(function (d) { selected.add(d.key); });
+        }
+
+        cancelConfirming = false;
+        updateCancelButton();
+        renderList();
+        updatePrimaryButton();
+        updateQuickToggleText();
+      });
+
+      btnPrimary.addEventListener("click", function () {
+        if (busy) return;
+        const keys = Array.from(selected);
+
+        if (!state.allComplete && keys.length === 0) {
+          showNotice("Pilih minimal satu sheet tujuan untuk diproses.", "error");
+          return;
+        }
+
+        cancelConfirming = false;
+        clearNotice();
+        setBusy(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            setBusy(false);
+            state = Object.assign({}, state, response);
+            initializeSelection();
+            render();
+
+            const kind = response.allComplete
+              ? "success"
+              : response.distribution && response.distribution.failed > 0
+                ? "error"
+                : "info";
+
+            showNotice(response.message, kind);
+          })
+          .withFailureHandler(function (error) {
+            setBusy(false);
+            render();
+            showNotice(error && error.message ? error.message : String(error), "error");
+          })
+          .sendSelectedDestinationsFromDialog({
+            sourceRow: state.sourceRow,
+            productName: state.productName,
+            selectedKeys: keys,
+          });
+      });
+
+      btnCancelOdoo.addEventListener("click", function () {
+        if (busy || !state.canCancelUpload) return;
+
+        if (!cancelConfirming) {
+          cancelConfirming = true;
+          updateCancelButton();
+          showNotice("Klik sekali lagi untuk menghapus centang Odoo (baris kembali ke Update Odoo — Oliv).", "error");
+          return;
+        }
+
+        clearNotice();
+        setBusy(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            setBusy(false);
+            showNotice(response.message, "success");
+            btnPrimary.disabled = true;
+            btnCancelOdoo.disabled = true;
+
+            window.setTimeout(function () {
+              google.script.host.close();
+            }, 800);
+          })
+          .withFailureHandler(function (error) {
+            setBusy(false);
+            cancelConfirming = false;
+            render();
+            showNotice(error && error.message ? error.message : String(error), "error");
+          })
+          .cancelUploadFromDestinationDialog({
+            sourceRow: state.sourceRow,
+            productName: state.productName,
+          });
+      });
+
+      btnClose.addEventListener("click", closeDialog);
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeDialog();
+        }
+      });
+
+      initializeSelection();
+      render();
+    </script>
+  </body>
+</html>

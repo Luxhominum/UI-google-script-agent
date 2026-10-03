@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        color-scheme: light;
+        --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        
+        --brand-maroon: #7a1f36;
+        --brand-maroon-dark: #5c1426;
+        --brand-maroon-subtle: #fcf4f6;
+        
+        --bg-page: #f8fafc;
+        --bg-card: #ffffff;
+        
+        --ink-title: #0f172a;
+        --ink-body: #1e293b;
+        --ink-muted: #64748b;
+        --ink-light: #94a3b8;
+        
+        --border-subtle: #e2e8f0;
+        --border-card: #cbd5e1;
+        
+        --red-bg: #fee2e2;
+        --red-text: #991b1b;
+        --red-border: #f87171;
+        --red-accent: #ef4444;
+
+        --orange-bg: #ffedd5;
+        --orange-text: #9a3412;
+        --orange-border: #fb923c;
+        --orange-accent: #f97316;
+
+        --yellow-bg: #fef9c3;
+        --yellow-text: #854d0e;
+        --yellow-border: #facc15;
+        --yellow-accent: #eab308;
+
+        --blue-bg: #e0f2fe;
+        --blue-text: #075985;
+        --blue-border: #7dd3fc;
+        --blue-accent: #0284c7;
+
+        --neutral-bg: #f1f5f9;
+        --neutral-text: #475569;
+        --neutral-border: #cbd5e1;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-main);
+        background: var(--bg-page);
+        color: var(--ink-body);
+        line-height: 1.4;
+        font-size: 12.5px;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* Sticky Header */
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #ffffff;
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 12px 12px 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+
+      .eyebrow {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--brand-maroon);
+        margin-bottom: 2px;
+      }
+
+      .header-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--ink-title);
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+
+      .scope-desc {
+        font-size: 11px;
+        color: var(--ink-muted);
+        margin-top: 3px;
+        line-height: 1.35;
+      }
+
+      .action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #f1f5f9;
+      }
+
+      .order-tally {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+      }
+
+      .tally-number {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand-maroon);
+        font-family: var(--font-mono);
+      }
+
+      .tally-label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--ink-muted);
+      }
+
+      .btn-refresh {
+        appearance: none;
+        background: #ffffff;
+        border: 1.5px solid var(--brand-maroon);
+        border-radius: 6px;
+        color: var(--brand-maroon);
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: var(--font-main);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .btn-refresh:hover:not(:disabled) {
+        background: var(--brand-maroon-subtle);
+      }
+
+      .btn-refresh:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+
+      .warning-banner {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #92400e;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 10.5px;
+        margin: 8px 10px 0;
+        line-height: 1.35;
+      }
+
+      /* Content Area */
+      .content-area {
+        padding: 10px 10px 24px;
+      }
+
+      .order-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+      }
+
+      /* Card Structure */
+      .order-card {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        background: var(--bg-card);
+        border: 1px solid var(--border-card);
+        border-radius: 8px;
+        padding: 10px 11px;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+        position: relative;
+        font-family: var(--font-main);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+      }
+
+      .order-card:hover {
+        border-color: var(--brand-maroon);
+        box-shadow: 0 4px 10px rgba(122, 31, 54, 0.12);
+        animation-play-state: paused;
+      }
+
+      .order-card:active {
+        transform: scale(0.99);
+      }
+
+      .order-card.is-opening {
+        border-color: #d97706;
+        background: #fffdfa;
+        box-shadow: 0 0 0 2px #d97706;
+        animation-play-state: paused;
+      }
+
+      /* Base Colored Accent Strips */
+      .order-card.alert-normal {
+        border-left: 5px solid var(--blue-accent);
+      }
+
+      .order-card.alert-video {
+        border-left: 5px solid #8b5cf6;
+        background: #faf5ff;
+      }
+
+      .order-card.alert-warning {
+        border-left: 5px solid var(--yellow-accent);
+        animation: pulse-warning 2.4s ease-in-out infinite;
+      }
+
+      .order-card.alert-high {
+        border-left: 5px solid var(--orange-accent);
+        animation: pulse-high 1.6s ease-in-out infinite;
+      }
+
+      .order-card.alert-critical {
+        border-left: 5px solid var(--red-accent);
+        animation: pulse-critical 1.0s ease-in-out infinite;
+      }
+
+      /* =========================================================
+       * PULSING / BLINKING ANIMATIONS WHEN STATUS HOURS CHANGE
+       * ========================================================= */
+
+      @keyframes pulse-warning {
+        0%, 100% {
+          background-color: #ffffff;
+          border-color: var(--border-card);
+          border-left-color: var(--yellow-accent);
+        }
+        50% {
+          background-color: #fffef2;
+          border-color: #fde047;
+          border-left-color: #ca8a04;
+          box-shadow: 0 0 0 1.5px rgba(234, 179, 8, 0.18);
+        }
+      }
+
+      @keyframes pulse-high {
+        0%, 100% {
+          background-color: #ffffff;
+          border-color: var(--border-card);
+          border-left-color: var(--orange-accent);
+        }
+        50% {
+          background-color: #fffaf5;
+          border-color: #fdba74;
+          border-left-color: #ea580c;
+          box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.22);
+        }
+      }
+
+      @keyframes pulse-critical {
+        0%, 100% {
+          background-color: #ffffff;
+          border-color: var(--border-card);
+          border-left-color: var(--red-accent);
+        }
+        50% {
+          background-color: #fff5f5;
+          border-color: #fca5a5;
+          border-left-color: #dc2626;
+          box-shadow: 0 0 0 2.5px rgba(239, 68, 68, 0.28);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .order-card.alert-warning,
+        .order-card.alert-high,
+        .order-card.alert-critical {
+          animation: none;
+        }
+      }
+
+      /* Row 1: Top Meta (Baris # on Left, Date on Right) */
+      .card-meta-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 5px;
+      }
+
+      .row-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--ink-title);
+      }
+
+      .date-tag {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ink-muted);
+        font-family: var(--font-mono);
+        white-space: nowrap;
+      }
+
+      /* Row 2: Order Detail / Title */
+      .order-title-box {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink-title);
+        line-height: 1.35;
+        margin: 2px 0 6px;
+        word-break: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-height: 2.7em;
+      }
+
+      .order-title-box.is-empty {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--ink-light);
+        font-style: italic;
+      }
+
+      /* Row 3: Full Width Status & Timer Bar */
+      .status-timer-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8fafc;
+        padding: 5px 7px;
+        border-radius: 5px;
+        border: 1px solid #f1f5f9;
+        gap: 6px;
+        margin-top: 3px;
+      }
+
+      /* Status Pill */
+      .status-pill {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        padding: 2.5px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        text-transform: uppercase;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 65%;
+      }
+
+      .status-pill.pill-video {
+        background: #ede9fe;
+        color: #6b21a8;
+        border: 1px solid #c4b5fd;
+      }
+
+      .status-pill.pill-urgent {
+        background: var(--red-bg);
+        color: var(--red-text);
+        border: 1px solid var(--red-border);
+      }
+
+      .status-pill.pill-overdue-red {
+        background: var(--red-bg);
+        color: var(--red-text);
+        border: 1px solid var(--red-border);
+      }
+
+      .status-pill.pill-overdue-orange {
+        background: var(--orange-bg);
+        color: var(--orange-text);
+        border: 1px solid var(--orange-border);
+      }
+
+      .status-pill.pill-overdue-yellow {
+        background: var(--yellow-bg);
+        color: var(--yellow-text);
+        border: 1px solid var(--yellow-border);
+      }
+
+      .status-pill.pill-active {
+        background: var(--blue-bg);
+        color: var(--blue-text);
+        border: 1px solid var(--blue-border);
+      }
+
+      .status-pill.pill-neutral {
+        background: var(--neutral-bg);
+        color: var(--neutral-text);
+        border: 1px solid var(--neutral-border);
+      }
+
+      .timer-display {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        font-weight: 800;
+        color: var(--ink-title);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .order-card.alert-critical .timer-display {
+        color: #b91c1c;
+      }
+
+      .order-card.alert-high .timer-display {
+        color: #c2410c;
+      }
+
+      .order-card.alert-warning .timer-display {
+        color: #a16207;
+      }
+
+      /* Helper Note */
+      .schedule-note {
+        font-size: 10px;
+        color: var(--ink-muted);
+        margin-top: 4px;
+        line-height: 1.25;
+      }
+
+      .opening-indicator {
+        display: none;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #b45309;
+        margin-top: 5px;
+        padding-top: 4px;
+        border-top: 1px dashed #fde68a;
+      }
+
+      .order-card.is-opening .opening-indicator {
+        display: block;
+      }
+
+      /* Empty & Error States */
+      .state-box {
+        padding: 30px 14px;
+        text-align: center;
+        border-radius: 8px;
+        border: 1.5px dashed var(--border-card);
+        background: #ffffff;
+        color: var(--ink-muted);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      .state-box.state-error {
+        border-color: #fca5a5;
+        background: #fff5f5;
+        color: #991b1b;
+      }
+
+      .state-box.state-empty {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #475569;
+      }
+
+      .footer-stamp {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 9.5px;
+        color: var(--ink-light);
+        font-family: var(--font-mono);
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="app-header">
+      <div class="eyebrow">Pusat Grosir Eceran</div>
+      <h1 class="header-title">Pesanan Belum Selesai</h1>
+      <p id="scope-text" class="scope-desc">
+        Memuat data antrian produksi...
+      </p>
+
+      <div class="action-bar">
+        <div class="order-tally">
+          <span id="tally-count" class="tally-number">—</span>
+          <span class="tally-label">pesanan belum selesai</span>
+        </div>
+        <button id="btn-refresh" class="btn-refresh" type="button">
+          <span>🔄</span> Perbarui
+        </button>
+      </div>
+    </header>
+
+    <div id="warning-container"></div>
+
+    <main class="content-area">
+      <div id="main-content" class="state-box">
+        Membaca antrian dari spreadsheet...
+      </div>
+      <div id="updated-stamp" class="footer-stamp"></div>
+    </main>
+
+    <script>
+      const mainContent = document.getElementById('main-content');
+      const tallyCount = document.getElementById('tally-count');
+      const scopeText = document.getElementById('scope-text');
+      const btnRefresh = document.getElementById('btn-refresh');
+      const updatedStamp = document.getElementById('updated-stamp');
+      const warningContainer = document.getElementById('warning-container');
+
+      let isFetching = false;
+
+      function loadOrders(silent) {
+        if (isFetching) return;
+        isFetching = true;
+        btnRefresh.disabled = true;
+
+        if (!silent) {
+          mainContent.className = 'state-box';
+          mainContent.textContent = 'Membaca antrian dari spreadsheet...';
+        }
+
+        google.script.run
+          .withSuccessHandler(renderData)
+          .withFailureHandler(renderError)
+          .getUnfinishedOrdersForSidebar();
+      }
+
+      function renderData(data) {
+        isFetching = false;
+        btnRefresh.disabled = false;
+
+        const orders = (data && Array.isArray(data.orders)) ? data.orders : [];
+        tallyCount.textContent = orders.length;
+
+        if (data && data.scopeLabel) {
+          scopeText.textContent = data.scopeLabel;
+        }
+
+        if (data && data.updatedAt) {
+          updatedStamp.textContent = 'Pembaruan: ' + data.updatedAt;
+        }
+
+        warningContainer.replaceChildren();
+        if (data && Array.isArray(data.warnings) && data.warnings.length > 0) {
+          data.warnings.forEach(function (warn) {
+            const warnBox = document.createElement('div');
+            warnBox.className = 'warning-banner';
+            warnBox.textContent = warn;
+            warningContainer.appendChild(warnBox);
+          });
+        }
+
+        mainContent.replaceChildren();
+
+        if (!orders.length) {
+          mainContent.className = 'state-box state-empty';
+          mainContent.innerHTML = '<strong>Semua pesanan selesai! 🎉</strong><br>Tidak ada pesanan belum selesai kemarin & hari ini.';
+          return;
+        }
+
+        mainContent.className = 'order-cards';
+
+        orders.forEach(function (item) {
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'order-card alert-' + (item.alertLevel || 'normal');
+
+          // Row 1: Top Meta (Baris # on Left, Date on Right)
+          const metaRow = document.createElement('div');
+          metaRow.className = 'card-meta-row';
+
+          const rowTitle = document.createElement('span');
+          rowTitle.className = 'row-title';
+          rowTitle.textContent = 'Baris ' + item.rowNumber;
+
+          const dateTag = document.createElement('span');
+          dateTag.className = 'date-tag';
+          dateTag.textContent = item.dateFormatted ? item.dateFormatted : '—';
+
+          metaRow.appendChild(rowTitle);
+          metaRow.appendChild(dateTag);
+
+          // Row 2: Order Detail (Deskripsi Pesanan)
+          const titleBox = document.createElement('div');
+          const cleanDetail = (item.detail || '').replace(/\s+/g, ' ').trim();
+          if (cleanDetail) {
+            titleBox.className = 'order-title-box';
+            titleBox.textContent = cleanDetail;
+          } else {
+            titleBox.className = 'order-title-box is-empty';
+            titleBox.textContent = '(Belum ada detail pesanan)';
+          }
+
+          // Row 3: Full Width Status & Timer Bar
+          const statusTimerBar = document.createElement('div');
+          statusTimerBar.className = 'status-timer-bar';
+
+          const statusPill = document.createElement('span');
+          statusPill.className = 'status-pill ' + getPillClass(item);
+          statusPill.textContent = item.statusLabel;
+
+          const timerDisplay = document.createElement('span');
+          timerDisplay.className = 'timer-display';
+          timerDisplay.textContent = (item.elapsedText && item.elapsedText !== '—') ? '⏱️ ' + item.elapsedText : '⏱️ —';
+
+          statusTimerBar.appendChild(statusPill);
+          statusTimerBar.appendChild(timerDisplay);
+
+          // Row 4: Schedule Note
+          const note = document.createElement('div');
+          note.className = 'schedule-note';
+          note.textContent = item.scheduleText || '';
+
+          // Row 5: Opening Indicator
+          const opening = document.createElement('div');
+          opening.className = 'opening-indicator';
+          opening.textContent = '⏳ Membuka baris ' + item.rowNumber + '...';
+
+          card.appendChild(metaRow);
+          card.appendChild(titleBox);
+          card.appendChild(statusTimerBar);
+          if (item.scheduleText) {
+            card.appendChild(note);
+          }
+          card.appendChild(opening);
+
+          card.addEventListener('click', function () {
+            handleCardClick(card, item.sheetName, item.rowNumber);
+          });
+
+          mainContent.appendChild(card);
+        });
+      }
+
+      function getPillClass(item) {
+        if (item.alertLevel === 'video' || (item.orderType && item.orderType.toLowerCase().indexOf('video') !== -1)) {
+          return 'pill-video';
+        }
+        if (item.orderType && item.orderType.toLowerCase().trim() === 'urgent') {
+          return 'pill-urgent';
+        }
+        if (item.alertLevel === 'critical') return 'pill-overdue-red';
+        if (item.alertLevel === 'high') return 'pill-overdue-orange';
+        if (item.alertLevel === 'warning') return 'pill-overdue-yellow';
+        if (item.statusKind === 'active') return 'pill-active';
+        return 'pill-neutral';
+      }
+
+      function handleCardClick(card, sheetName, rowNumber) {
+        document.querySelectorAll('.order-card').forEach(function (c) {
+          c.classList.remove('is-opening');
+          c.disabled = false;
+        });
+
+        card.classList.add('is-opening');
+        card.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function () {
+            card.disabled = false;
+            card.classList.remove('is-opening');
+          })
+          .withFailureHandler(function (err) {
+            card.disabled = false;
+            card.classList.remove('is-opening');
+            alert('Gagal membuka baris: ' + (err.message || err));
+          })
+          .jumpToOrderRow(sheetName, rowNumber);
+      }
+
+      function renderError(error) {
+        isFetching = false;
+        btnRefresh.disabled = false;
+        tallyCount.textContent = '!';
+        mainContent.className = 'state-box state-error';
+        mainContent.textContent = error && error.message ? error.message : 'Gagal memuat antrian pesanan.';
+      }
+
+      btnRefresh.addEventListener('click', function () {
+        loadOrders(false);
+      });
+
+      // Initial load
+      loadOrders(false);
+
+      // Auto-refresh every 60 seconds
+      setInterval(function () {
+        loadOrders(true);
+      }, 60000);
+    </script>
+  </body>
+</html>

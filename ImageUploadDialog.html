@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        color-scheme: light;
+        --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        
+        --brand-maroon: #7a1f36;
+        --brand-maroon-dark: #5c1426;
+        
+        --bg-page: #f8fafc;
+        --bg-card: #ffffff;
+        
+        --ink-title: #0f172a;
+        --ink-body: #1e293b;
+        --ink-muted: #64748b;
+        --ink-light: #94a3b8;
+        
+        --border-subtle: #e2e8f0;
+        --border-card: #cbd5e1;
+        
+        --blue-primary: #2563eb;
+        --blue-hover: #1d4ed8;
+        --blue-subtle: #eff6ff;
+        
+        --green-success: #16a34a;
+        --green-subtle: #f0fdf4;
+        --green-border: #bbf7d0;
+
+        --amber-warning: #d97706;
+        --red-danger: #dc2626;
+        --red-subtle: #fef2f2;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-main);
+        background: var(--bg-page);
+        color: var(--ink-body);
+        line-height: 1.4;
+        font-size: 13px;
+        padding: 18px 20px 24px;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* Header Bar */
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .badge-sheet {
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 6px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .target-col-label {
+        font-size: 12px;
+        color: var(--ink-muted);
+        font-weight: 700;
+      }
+
+      .row-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--ink-title);
+      }
+
+      .row-input {
+        width: 85px;
+        padding: 6px 10px;
+        font-family: var(--font-mono);
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--brand-maroon);
+        border: 2px solid var(--border-card);
+        border-radius: 6px;
+        text-align: center;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+
+      .row-input:focus {
+        border-color: var(--blue-primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      }
+
+      .last-row-info {
+        font-size: 12px;
+        color: var(--ink-muted);
+        font-weight: 600;
+      }
+
+      /* 2-Column Grid Layout */
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        align-items: start;
+      }
+
+      /* Left Column: Composer */
+      .composer-card {
+        background: #ffffff;
+        border: 1px solid var(--border-card);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .drop-zone {
+        position: relative;
+        background: #f8fafc;
+        border: 2px dashed #94a3b8;
+        border-radius: 10px;
+        padding: 32px 18px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .drop-zone:hover, .drop-zone.drag-over {
+        border-color: var(--blue-primary);
+        background: var(--blue-subtle);
+      }
+
+      .drop-zone.has-image {
+        border-style: solid;
+        border-color: #cbd5e1;
+        padding: 12px;
+        background: #ffffff;
+      }
+
+      .drop-icon {
+        font-size: 40px;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .drop-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--ink-title);
+        margin-bottom: 4px;
+      }
+
+      .drop-sub {
+        font-size: 12px;
+        color: var(--ink-muted);
+      }
+
+      .paste-hint {
+        display: inline-block;
+        margin-top: 8px;
+        background: #e2e8f0;
+        border: 1px solid #cbd5e1;
+        padding: 4px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-family: var(--font-mono);
+        color: #1e293b;
+        font-weight: 700;
+      }
+
+      /* Preview inside composer */
+      .preview-container {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .preview-img {
+        max-width: 100%;
+        max-height: 220px;
+        object-fit: contain;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      }
+
+      .preview-meta {
+        font-size: 11.5px;
+        color: var(--ink-muted);
+        font-family: var(--font-mono);
+      }
+
+      .btn-remove-img {
+        background: none;
+        border: none;
+        color: #dc2626;
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .input-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ink-muted);
+      }
+
+      .text-input {
+        width: 100%;
+        padding: 9px 12px;
+        font-family: var(--font-main);
+        font-size: 13px;
+        border: 1.5px solid var(--border-card);
+        border-radius: 7px;
+        outline: none;
+      }
+
+      .text-input:focus {
+        border-color: var(--blue-primary);
+      }
+
+      .btn-enqueue {
+        width: 100%;
+        appearance: none;
+        background: var(--blue-primary);
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 18px;
+        font-family: var(--font-main);
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+      }
+
+      .btn-enqueue:hover:not(:disabled) {
+        background: var(--blue-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn-enqueue:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* Right Column: Queue & Monitor */
+      .queue-card {
+        background: #ffffff;
+        border: 1px solid var(--border-card);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        height: 560px;
+      }
+
+      .queue-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .queue-title {
+        font-size: 13.5px;
+        font-weight: 800;
+        color: var(--ink-title);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .queue-count-pill {
+        background: #e2e8f0;
+        color: #334155;
+        font-size: 11.5px;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-family: var(--font-mono);
+      }
+
+      .queue-list {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        overflow-y: auto;
+        padding-right: 4px;
+        flex: 1;
+      }
+
+      .queue-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--ink-light);
+        text-align: center;
+        font-size: 13px;
+        gap: 8px;
+      }
+
+      /* Queue Item */
+      .queue-item {
+        background: #ffffff;
+        border: 1px solid var(--border-card);
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        transition: all 0.15s ease;
+      }
+
+      .queue-item.is-uploading {
+        border-color: #60a5fa;
+        background: #f8fbff;
+      }
+
+      .queue-item.is-success {
+        border-color: var(--green-border);
+        background: var(--green-subtle);
+      }
+
+      .queue-item.is-error {
+        border-color: #fca5a5;
+        background: var(--red-subtle);
+      }
+
+      .item-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .item-identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .item-thumb {
+        width: 42px;
+        height: 42px;
+        border-radius: 5px;
+        object-fit: cover;
+        border: 1px solid #cbd5e1;
+        background: #f1f5f9;
+      }
+
+      .item-titles {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .item-row-num {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--ink-title);
+      }
+
+      .item-desc {
+        font-size: 11.5px;
+        color: var(--ink-muted);
+        max-width: 170px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .item-status-tag {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 2.5px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-family: var(--font-mono);
+      }
+
+      .status-waiting {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      .status-running {
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
+      .status-done {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      .status-fail {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      /* Progress Bar */
+      .progress-track {
+        height: 4px;
+        width: 100%;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--blue-primary);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+
+      .queue-item.is-uploading .progress-fill {
+        width: 70%;
+        animation: progress-pulse 1.2s infinite ease-in-out;
+      }
+
+      .queue-item.is-success .progress-fill {
+        width: 100%;
+        background: var(--green-success);
+      }
+
+      .queue-item.is-error .progress-fill {
+        width: 100%;
+        background: var(--red-danger);
+      }
+
+      @keyframes progress-pulse {
+        0% { transform: translateX(-100%); width: 40%; }
+        50% { transform: translateX(50%); width: 60%; }
+        100% { transform: translateX(150%); width: 40%; }
+      }
+
+      #file-input {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Top Header -->
+    <header class="modal-header">
+      <div class="header-left">
+        <span id="sheet-badge" class="badge-sheet">...</span>
+        <span class="target-col-label">→ Kolom C (Foto Desain) & Kolom L (Keterangan)</span>
+      </div>
+      <div class="row-selector">
+        <label for="row-input">Baris Target:</label>
+        <input id="row-input" class="row-input" type="number" min="5" value="5">
+        <span id="last-row-info" class="last-row-info"></span>
+      </div>
+    </header>
+
+    <!-- 2-Column Workspace Grid -->
+    <main class="workspace-grid">
+      <!-- Left: Composer -->
+      <section class="composer-card">
+        <div id="drop-zone" class="drop-zone">
+          <div id="drop-prompt">
+            <span class="drop-icon">📷</span>
+            <div class="drop-title">Pilih / Tarik Foto Desain</div>
+            <div class="drop-sub">Tarik file gambar ke kotak ini atau klik untuk jelajah</div>
+            <div><span class="paste-hint">💡 Cukup tekan Ctrl + V</span></div>
+          </div>
+
+          <div id="preview-box" class="preview-container">
+            <img id="preview-img" class="preview-img" alt="Pratinjau">
+            <div id="preview-meta" class="preview-meta"></div>
+            <button id="btn-remove" class="btn-remove-img" type="button">Ganti Foto</button>
+          </div>
+
+          <input id="file-input" type="file" accept="image/*">
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="detail-input">Keterangan Pesanan (Masuk ke Kolom L - Opsional):</label>
+          <input id="detail-input" class="text-input" type="text" placeholder="Contoh: btuh piabika std polos navy 1">
+        </div>
+
+        <button id="btn-enqueue" class="btn-enqueue" type="button" disabled>
+          <span>⚡</span> Masukkan ke Antrean & Lanjut (Enter)
+        </button>
+      </section>
+
+      <!-- Right: Queue Monitor -->
+      <section class="queue-card">
+        <div class="queue-header">
+          <div class="queue-title">
+            <span>📤 Status Antrean Upload Latar Belakang</span>
+            <span id="queue-count" class="queue-count-pill">0</span>
+          </div>
+        </div>
+        <div id="queue-list" class="queue-list">
+          <div id="queue-empty" class="queue-empty-state">
+            <span style="font-size: 28px;">📭</span>
+            <div>Belum ada foto dalam antrean.<br>Paste foto di sebelah kiri dan tekan Enter!</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      let currentBase64 = null;
+      let currentMime = 'image/jpeg';
+      let currentThumbData = null;
+
+      const uploadQueue = [];
+      let isWorkerActive = false;
+
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('file-input');
+      const dropPrompt = document.getElementById('drop-prompt');
+      const previewBox = document.getElementById('preview-box');
+      const previewImg = document.getElementById('preview-img');
+      const previewMeta = document.getElementById('preview-meta');
+      const btnRemove = document.getElementById('btn-remove');
+      const btnEnqueue = document.getElementById('btn-enqueue');
+      const rowInput = document.getElementById('row-input');
+      const sheetBadge = document.getElementById('sheet-badge');
+      const detailInput = document.getElementById('detail-input');
+      const queueList = document.getElementById('queue-list');
+      const queueCount = document.getElementById('queue-count');
+      const lastRowInfo = document.getElementById('last-row-info');
+      const queueEmpty = document.getElementById('queue-empty');
+
+      function initActiveContext() {
+        google.script.run
+          .withSuccessHandler(function(ctx) {
+            if (ctx) {
+              sheetBadge.textContent = ctx.sheetName || 'SEPTEMBER';
+              if (ctx.nextRow && ctx.nextRow >= 5) {
+                rowInput.value = ctx.nextRow;
+              }
+              if (ctx.lastRow) {
+                lastRowInfo.textContent = '(Data terakhir: Baris ' + ctx.lastRow + ')';
+              }
+            }
+          })
+          .getActiveRowContext();
+      }
+
+      // Drag & Drop
+      dropZone.addEventListener('click', function(e) {
+        if (e.target !== btnRemove && !currentBase64) {
+          fileInput.click();
+        }
+      });
+
+      fileInput.addEventListener('change', function() {
+        if (fileInput.files && fileInput.files[0]) {
+          processFile(fileInput.files[0]);
+        }
+      });
+
+      ['dragenter', 'dragover'].forEach(name => {
+        dropZone.addEventListener(name, function(e) {
+          e.preventDefault();
+          dropZone.classList.add('drag-over');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(name => {
+        dropZone.addEventListener(name, function(e) {
+          e.preventDefault();
+          dropZone.classList.remove('drag-over');
+        });
+      });
+
+      dropZone.addEventListener('drop', function(e) {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          processFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      // Global Clipboard Paste Listener (Ctrl + V)
+      window.addEventListener('paste', function(e) {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (file) {
+              processFile(file);
+              break;
+            }
+          }
+        }
+      });
+
+      function processFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_DIM = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height && width > MAX_DIM) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else if (height > MAX_DIM) {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            currentBase64 = compressedDataUrl.split(',')[1];
+            currentMime = 'image/jpeg';
+            currentThumbData = compressedDataUrl;
+
+            previewImg.src = compressedDataUrl;
+            dropPrompt.style.display = 'none';
+            previewBox.style.display = 'flex';
+            dropZone.classList.add('has-image');
+            previewMeta.textContent = width + 'x' + height + ' px · Siap Diunggah';
+
+            btnEnqueue.disabled = false;
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      btnRemove.addEventListener('click', function(e) {
+        e.stopPropagation();
+        resetComposer();
+      });
+
+      function resetComposer() {
+        currentBase64 = null;
+        currentThumbData = null;
+        fileInput.value = '';
+        dropPrompt.style.display = 'block';
+        previewBox.style.display = 'none';
+        dropZone.classList.remove('has-image');
+        btnEnqueue.disabled = true;
+        detailInput.value = '';
+      }
+
+      function enqueueItem() {
+        if (!currentBase64) return;
+
+        const rowNum = parseInt(rowInput.value, 10);
+        if (isNaN(rowNum) || rowNum < 5) {
+          alert('Nomor baris minimal baris 5.');
+          return;
+        }
+
+        const item = {
+          id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          sheetName: sheetBadge.textContent,
+          rowNumber: rowNum,
+          base64Data: currentBase64,
+          mimeType: currentMime,
+          thumbUrl: currentThumbData,
+          detailText: detailInput.value.trim(),
+          status: 'waiting',
+          errorMsg: ''
+        };
+
+        uploadQueue.push(item);
+        renderQueueItem(item);
+        updateQueueCount();
+
+        // Instantly increment target row and reset composer
+        rowInput.value = rowNum + 1;
+        lastRowInfo.textContent = '(Data terakhir: Baris ' + rowNum + ')';
+        resetComposer();
+
+        processNextInQueue();
+      }
+
+      btnEnqueue.addEventListener('click', enqueueItem);
+
+      window.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && currentBase64 && e.target !== detailInput) {
+          e.preventDefault();
+          enqueueItem();
+        }
+      });
+
+      function updateQueueCount() {
+        const pendingCount = uploadQueue.filter(i => i.status === 'waiting' || i.status === 'uploading').length;
+        queueCount.textContent = pendingCount;
+      }
+
+      function renderQueueItem(item) {
+        if (queueEmpty) {
+          queueEmpty.style.display = 'none';
+        }
+
+        const card = document.createElement('div');
+        card.id = 'card_' + item.id;
+        card.className = 'queue-item';
+
+        const topRow = document.createElement('div');
+        topRow.className = 'item-top-row';
+
+        const idBox = document.createElement('div');
+        idBox.className = 'item-identity';
+
+        const thumb = document.createElement('img');
+        thumb.className = 'item-thumb';
+        thumb.src = item.thumbUrl;
+
+        const titles = document.createElement('div');
+        titles.className = 'item-titles';
+
+        const rowNum = document.createElement('span');
+        rowNum.className = 'item-row-num';
+        rowNum.textContent = 'Baris ' + item.rowNumber;
+
+        const desc = document.createElement('span');
+        desc.className = 'item-desc';
+        desc.textContent = item.detailText || '(Tanpa keterangan)';
+
+        titles.appendChild(rowNum);
+        titles.appendChild(desc);
+        idBox.appendChild(thumb);
+        idBox.appendChild(titles);
+
+        const statusTag = document.createElement('span');
+        statusTag.id = 'status_' + item.id;
+        statusTag.className = 'item-status-tag status-waiting';
+        statusTag.textContent = 'Antre';
+
+        topRow.appendChild(idBox);
+        topRow.appendChild(statusTag);
+
+        const track = document.createElement('div');
+        track.className = 'progress-track';
+        const fill = document.createElement('div');
+        fill.id = 'progress_' + item.id;
+        fill.className = 'progress-fill';
+        track.appendChild(fill);
+
+        card.appendChild(topRow);
+        card.appendChild(track);
+
+        queueList.insertBefore(card, queueList.firstChild);
+      }
+
+      function processNextInQueue() {
+        if (isWorkerActive) return;
+
+        const nextTask = uploadQueue.find(i => i.status === 'waiting');
+        if (!nextTask) {
+          updateQueueCount();
+          return;
+        }
+
+        isWorkerActive = true;
+        nextTask.status = 'uploading';
+        updateQueueCount();
+
+        const card = document.getElementById('card_' + nextTask.id);
+        const statusTag = document.getElementById('status_' + nextTask.id);
+        if (card && statusTag) {
+          card.className = 'queue-item is-uploading';
+          statusTag.className = 'item-status-tag status-running';
+          statusTag.textContent = 'Mengunggah...';
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            isWorkerActive = false;
+            if (res && res.success) {
+              nextTask.status = 'success';
+              if (card && statusTag) {
+                card.className = 'queue-item is-success';
+                statusTag.className = 'item-status-tag status-done';
+                statusTag.textContent = '✓ Selesai';
+              }
+            } else {
+              nextTask.status = 'error';
+              nextTask.errorMsg = res && res.error ? res.error : 'Gagal upload';
+              if (card && statusTag) {
+                card.className = 'queue-item is-error';
+                statusTag.className = 'item-status-tag status-fail';
+                statusTag.textContent = '! Gagal';
+              }
+            }
+            updateQueueCount();
+            processNextInQueue();
+          })
+          .withFailureHandler(function(err) {
+            isWorkerActive = false;
+            nextTask.status = 'error';
+            nextTask.errorMsg = err.message || err;
+            if (card && statusTag) {
+              card.className = 'queue-item is-error';
+              statusTag.className = 'item-status-tag status-fail';
+              statusTag.textContent = '! Gagal';
+            }
+            updateQueueCount();
+            processNextInQueue();
+          })
+          .uploadOrderImageToCell(
+            nextTask.sheetName,
+            nextTask.rowNumber,
+            nextTask.base64Data,
+            nextTask.mimeType,
+            nextTask.detailText
+          );
+      }
+
+      initActiveContext();
+    </script>
+  </body>
+</html>

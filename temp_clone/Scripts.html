@@ -1,0 +1,1150 @@
+<script>
+(() => {
+  'use strict';
+
+  const state = {
+    data: null,
+    selectedDepartment: 'All',
+    selectedStatus: 'All',
+    search: '',
+    page: 1,
+    pageSize: 10,
+    departmentsExpanded: false,
+    pendingDelete: null
+  };
+
+  const els = {};
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  async function init() {
+    cacheElements();
+    bindEvents();
+
+    try {
+      await loadPortal({ silent: true });
+    } catch (error) {
+      showFatal(error);
+    }
+  }
+
+  function cacheElements() {
+    [
+      'app', 'sidebar', 'sidebarOpen', 'sidebarClose', 'sidebarBackdrop',
+      'departmentNav', 'addFileNav', 'refreshNav', 'refreshTop', 'addFileTop',
+      'brandLogoImg', 'globalSearch', 'searchHint', 'accountAvatar', 'accountName', 'accountEmail',
+      'kpiTotal', 'kpiTotalMeta', 'kpiActive', 'kpiActiveMeta', 'kpiPending',
+      'kpiDepartments', 'quickAccessList', 'showAllQuick', 'divisionBars',
+      'divisionCountLabel', 'directoryPanel', 'statusFilter', 'resultSummary',
+      'resourceRows', 'emptyDirectory', 'pagination', 'prevPage', 'nextPage', 'pageLabel',
+      'attentionList', 'attentionCount', 'loadingScreen', 'modalBackdrop', 'resourceModal',
+      'modalTitle', 'modalClose', 'cancelModal', 'resourceForm', 'formModeField',
+      'editRowField', 'editOriginalNameField', 'departmentField',
+      'newDepartmentFieldWrap', 'newDepartmentField', 'resourceNameField',
+      'descriptionField', 'statusField', 'ownerEmailField', 'targetUrlWrap',
+      'targetUrlField', 'createNotice', 'formMessage', 'submitResource', 'toastRegion',
+      'deleteModalBackdrop', 'deleteModalClose', 'cancelDeleteModal', 'confirmDeleteBtn', 'deleteTargetName'
+    ].forEach(id => els[id] = document.getElementById(id));
+  }
+
+  function bindEvents() {
+    document.querySelectorAll('[data-view]').forEach(button => {
+      button.addEventListener('click', () => {
+        const view = button.dataset.view;
+        setDepartment('All');
+        setActiveTopNav(view);
+        if (view === 'all') scrollToDirectory();
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+        closeSidebar();
+      });
+    });
+
+    if (els.addFileNav) els.addFileNav.addEventListener('click', openModal);
+    if (els.addFileTop) els.addFileTop.addEventListener('click', openModal);
+    if (els.refreshNav) els.refreshNav.addEventListener('click', () => loadPortal());
+    if (els.refreshTop) els.refreshTop.addEventListener('click', () => loadPortal());
+    if (els.showAllQuick) els.showAllQuick.addEventListener('click', scrollToDirectory);
+
+    if (els.globalSearch) {
+      els.globalSearch.addEventListener('input', event => {
+        state.search = event.target.value.trim().toLowerCase();
+        state.page = 1;
+        renderDynamicSections();
+      });
+    }
+
+    if (els.statusFilter) {
+      els.statusFilter.addEventListener('change', event => {
+        state.selectedStatus = event.target.value;
+        state.page = 1;
+        renderDynamicSections();
+      });
+    }
+
+    if (els.prevPage) {
+      els.prevPage.addEventListener('click', () => {
+        if (state.page > 1) {
+          state.page -= 1;
+          renderDirectory();
+        }
+      });
+    }
+
+    if (els.nextPage) {
+      els.nextPage.addEventListener('click', () => {
+        const pages = totalPages(getFilteredRecords().length);
+        if (state.page < pages) {
+          state.page += 1;
+          renderDirectory();
+        }
+      });
+    }
+
+    if (els.sidebarOpen) els.sidebarOpen.addEventListener('click', openSidebar);
+    if (els.sidebarClose) els.sidebarClose.addEventListener('click', closeSidebar);
+    if (els.sidebarBackdrop) els.sidebarBackdrop.addEventListener('click', closeSidebar);
+
+    if (els.modalClose) els.modalClose.addEventListener('click', closeModal);
+    if (els.cancelModal) els.cancelModal.addEventListener('click', closeModal);
+    if (els.modalBackdrop) {
+      els.modalBackdrop.addEventListener('mousedown', event => {
+        if (event.target === els.modalBackdrop) closeModal();
+      });
+    }
+
+    // Delete Modal Events
+    if (els.deleteModalClose) els.deleteModalClose.addEventListener('click', closeDeleteModal);
+    if (els.cancelDeleteModal) els.cancelDeleteModal.addEventListener('click', closeDeleteModal);
+    if (els.deleteModalBackdrop) {
+      els.deleteModalBackdrop.addEventListener('mousedown', event => {
+        if (event.target === els.deleteModalBackdrop) closeDeleteModal();
+      });
+    }
+    if (els.confirmDeleteBtn) els.confirmDeleteBtn.addEventListener('click', executeDelete);
+
+    if (els.departmentField) {
+      els.departmentField.addEventListener('change', syncNewDepartmentField);
+    }
+
+    if (els.resourceForm) {
+      els.resourceForm.addEventListener('submit', submitResource);
+    }
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        if (els.deleteModalBackdrop && els.deleteModalBackdrop.classList.contains('is-open')) {
+          closeDeleteModal();
+        } else if (els.modalBackdrop && els.modalBackdrop.classList.contains('is-open')) {
+          closeModal();
+        } else if (els.sidebar && els.sidebar.classList.contains('is-open')) {
+          closeSidebar();
+        } else if (state.search) {
+          state.search = '';
+          if (els.globalSearch) {
+            els.globalSearch.value = '';
+            els.globalSearch.blur();
+          }
+          state.page = 1;
+          renderDynamicSections();
+        }
+      }
+
+      if (
+        event.key === '/' &&
+        !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
+      ) {
+        event.preventDefault();
+        if (els.globalSearch) els.globalSearch.focus();
+      }
+    });
+  }
+
+  function loadPortal(options = {}) {
+    if (!options.silent) setRefreshing(true);
+
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(payload => {
+          state.data = payload;
+          state.page = 1;
+
+          if (!payload.departments.some(item => item.value === state.selectedDepartment)) {
+            state.selectedDepartment = 'All';
+          }
+
+          renderAll();
+          finishLoading();
+          setRefreshing(false);
+          if (!options.silent) showToast('Portal Diperbarui', 'Data terbaru berhasil dimuat.');
+          resolve(payload);
+        })
+        .withFailureHandler(error => {
+          setRefreshing(false);
+          const normalized = normalizeError(error);
+          if (!options.silent) showToast('Gagal Memuat', normalized.message, 'error');
+          reject(normalized);
+        })
+        .getPortalBootstrap();
+    });
+  }
+
+  function renderAll() {
+    renderLogo();
+    renderAccount();
+    renderManagementAccess();
+    renderDepartmentNav();
+    renderStatusFilter();
+    renderKpis();
+    renderDynamicSections();
+    populateModalDepartments();
+    populateModalStatuses();
+  }
+
+  function renderLogo() {
+    if (els.brandLogoImg && state.data && state.data.logoUri) {
+      els.brandLogoImg.src = state.data.logoUri;
+    }
+  }
+
+  function renderManagementAccess() {
+    const canManage = state.data && state.data.canManage !== false;
+    if (els.addFileNav) els.addFileNav.classList.toggle('hidden', !canManage);
+    if (els.addFileTop) els.addFileTop.classList.toggle('hidden', !canManage);
+  }
+
+  function renderAccount() {
+    const email = state.data.currentUser || '';
+    if (!email) return;
+
+    const local = email.split('@')[0] || 'PGE';
+    if (els.accountAvatar) els.accountAvatar.textContent = local.charAt(0).toUpperCase();
+    if (els.accountName) els.accountName.textContent = readableName(local);
+    if (els.accountEmail) els.accountEmail.textContent = email;
+  }
+
+  function renderDepartmentNav() {
+    if (!els.departmentNav) return;
+    els.departmentNav.replaceChildren();
+
+    const departments = state.data.departments.filter(item => item.value !== 'All');
+    const visibleLimit = 6;
+    const visible = state.departmentsExpanded ? departments : departments.slice(0, visibleLimit);
+
+    visible.forEach(item => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'nav-item' + (state.selectedDepartment === item.value ? ' active' : '');
+      button.dataset.department = item.value;
+      button.setAttribute('aria-current', state.selectedDepartment === item.value ? 'page' : 'false');
+
+      const content = document.createElement('div');
+      content.className = 'nav-item-content';
+
+      const icon = document.createElement('span');
+      icon.className = 'nav-icon';
+      icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`;
+
+      const label = document.createElement('span');
+      label.textContent = departmentLabel(item.value);
+      label.title = item.label || item.value;
+
+      content.append(icon, label);
+
+      const deptCount = state.data.records.filter(r => r.department === item.value).length;
+      const badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      badge.textContent = deptCount;
+
+      button.append(content, badge);
+      button.addEventListener('click', () => {
+        setDepartment(item.value);
+        setActiveTopNav(null);
+        closeSidebar();
+      });
+
+      els.departmentNav.appendChild(button);
+    });
+
+    if (departments.length > visibleLimit) {
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'text-action';
+      toggle.style.padding = '8px 10px';
+      toggle.style.marginTop = '4px';
+      toggle.innerHTML = state.departmentsExpanded
+        ? '− Sembunyikan'
+        : `+ ${departments.length - visibleLimit} divisi lainnya`;
+      toggle.addEventListener('click', () => {
+        state.departmentsExpanded = !state.departmentsExpanded;
+        renderDepartmentNav();
+      });
+      els.departmentNav.appendChild(toggle);
+    }
+  }
+
+  function renderStatusFilter() {
+    if (!els.statusFilter) return;
+    const current = state.selectedStatus;
+    els.statusFilter.replaceChildren();
+
+    state.data.statuses.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.label;
+      els.statusFilter.appendChild(option);
+    });
+
+    els.statusFilter.value = current;
+  }
+
+  function renderKpis() {
+    const stats = state.data.stats;
+    if (els.kpiTotal) els.kpiTotal.textContent = formatNumber(stats.total);
+    if (els.kpiActive) els.kpiActive.textContent = formatNumber(stats.active);
+    if (els.kpiPending) els.kpiPending.textContent = formatNumber(stats.pending);
+    if (els.kpiDepartments) els.kpiDepartments.textContent = formatNumber(stats.departments);
+
+    const activePercent = stats.total ? Math.round((stats.active / stats.total) * 100) : 0;
+    if (els.kpiActiveMeta) {
+      const badge = els.kpiActiveMeta.querySelector('.mini-badge');
+      if (badge) badge.textContent = activePercent + '%';
+    }
+  }
+
+  function renderDynamicSections() {
+    renderQuickAccess();
+    renderDivisionBars();
+    renderDirectory();
+    renderAttention();
+    renderDepartmentActiveState();
+  }
+
+  function renderQuickAccess() {
+    if (!els.quickAccessList) return;
+    const records = getFilteredRecords()
+      .slice()
+      .sort((a, b) => statusRank(a.status) - statusRank(b.status) || a.name.localeCompare(b.name))
+      .slice(0, 6);
+
+    els.quickAccessList.replaceChildren();
+
+    if (!records.length) {
+      els.quickAccessList.appendChild(panelEmpty('Tidak ada shortcut', 'Tidak ada dokumen yang cocok dengan filter saat ini.'));
+      return;
+    }
+
+    records.forEach(record => {
+      const card = document.createElement('div');
+      card.className = 'quick-item';
+
+      const copy = document.createElement('div');
+      copy.className = 'quick-copy';
+
+      const name = document.createElement('div');
+      name.className = 'quick-name';
+      name.textContent = record.name;
+      name.title = record.name;
+
+      const dept = document.createElement('div');
+      dept.className = 'quick-dept';
+      dept.textContent = `${departmentLabel(record.department)} · ${statusLabel(record.status)}`;
+
+      copy.append(name, dept);
+
+      if (isValidUrl(record.url)) {
+        const link = document.createElement('a');
+        link.className = 'quick-btn';
+        link.href = record.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.title = `Buka ${record.name}`;
+        link.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
+        card.append(copy, link);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'quick-btn';
+        span.style.opacity = '0.4';
+        span.title = 'Link belum tersedia';
+        span.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
+        card.append(copy, span);
+      }
+
+      els.quickAccessList.appendChild(card);
+    });
+  }
+
+  function renderDivisionBars() {
+    if (!els.divisionBars) return;
+    const counts = new Map();
+    const source = state.data.records.filter(record =>
+      state.selectedStatus === 'All' || record.status === state.selectedStatus
+    );
+
+    source.forEach(record => {
+      const key = record.department || 'All';
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+
+    const rows = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || departmentLabel(a[0]).localeCompare(departmentLabel(b[0])))
+      .slice(0, 6);
+
+    els.divisionBars.replaceChildren();
+    if (els.divisionCountLabel) els.divisionCountLabel.textContent = `${counts.size} divisi`;
+
+    if (!rows.length) {
+      els.divisionBars.appendChild(panelEmpty('Belum ada data', 'Tambahkan dokumen untuk melihat statistik divisi.'));
+      return;
+    }
+
+    const max = Math.max(...rows.map(row => row[1]), 1);
+
+    rows.forEach(([department, count]) => {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+
+      const meta = document.createElement('div');
+      meta.className = 'bar-meta';
+
+      const label = document.createElement('span');
+      label.className = 'bar-label';
+      label.textContent = departmentLabel(department);
+      label.title = label.textContent;
+
+      const number = document.createElement('span');
+      number.className = 'bar-count';
+      number.textContent = `${count} file`;
+
+      meta.append(label, number);
+
+      const track = document.createElement('div');
+      track.className = 'bar-track';
+
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill';
+      fill.style.width = Math.max(6, Math.round((count / max) * 100)) + '%';
+
+      track.appendChild(fill);
+      row.append(meta, track);
+      els.divisionBars.appendChild(row);
+    });
+  }
+
+  function renderDirectory() {
+    if (!els.resourceRows) return;
+    const records = getFilteredRecords();
+    const pages = totalPages(records.length);
+    if (state.page > pages) state.page = pages;
+
+    const start = (state.page - 1) * state.pageSize;
+    const visible = records.slice(start, start + state.pageSize);
+
+    els.resourceRows.replaceChildren();
+    if (els.resultSummary) els.resultSummary.textContent = resultSummary(records.length);
+    if (els.emptyDirectory) els.emptyDirectory.classList.toggle('hidden', records.length > 0);
+    if (els.pagination) els.pagination.classList.toggle('hidden', records.length === 0);
+
+    const canManage = state.data && state.data.canManage !== false;
+
+    visible.forEach(record => {
+      const tr = document.createElement('tr');
+
+      // Col 1: File Name & Description
+      const fileCell = document.createElement('td');
+      const fileWrap = document.createElement('div');
+      fileWrap.className = 'resource-cell-title';
+
+      const name = document.createElement('div');
+      name.className = 'resource-name';
+      name.textContent = record.name;
+      name.title = record.name;
+
+      const desc = document.createElement('div');
+      desc.className = 'resource-desc';
+      desc.textContent = record.description || 'Tanpa keterangan tambahan';
+      desc.title = desc.textContent;
+
+      fileWrap.append(name, desc);
+      fileCell.appendChild(fileWrap);
+
+      // Col 2: Department Badge
+      const deptCell = document.createElement('td');
+      const deptBadge = document.createElement('span');
+      deptBadge.className = 'badge-dept';
+      deptBadge.textContent = departmentLabel(record.department);
+      deptCell.appendChild(deptBadge);
+
+      // Col 3: Owner PIC
+      const ownerCell = document.createElement('td');
+      ownerCell.textContent = ownerDisplay(record.owner);
+      ownerCell.title = record.owner || 'PIC belum diisi';
+
+      // Col 4: Status Pill
+      const statusCell = document.createElement('td');
+      statusCell.appendChild(makeStatusPill(record.status));
+
+      // Col 5: Actions (Copy Link, Open Link, Edit, Delete)
+      const actionCell = document.createElement('td');
+      actionCell.className = 'align-right';
+
+      const actionWrap = document.createElement('div');
+      actionWrap.className = 'table-actions';
+
+      // 1-Click Copy Link button (if valid URL)
+      if (isValidUrl(record.url)) {
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'action-icon-btn';
+        copyBtn.title = `Salin Link ${record.name}`;
+        copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        copyBtn.addEventListener('click', () => copyToClipboard(record.url, record.name));
+        actionWrap.appendChild(copyBtn);
+      }
+
+      // Open Link button
+      actionWrap.appendChild(makeOpenLink(record.url));
+
+      if (canManage) {
+        // In-Place Edit button
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'action-icon-btn edit';
+        editBtn.title = `Edit ${record.name}`;
+        editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+        editBtn.addEventListener('click', () => openEditModal(record));
+        actionWrap.appendChild(editBtn);
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'action-icon-btn delete';
+        deleteBtn.title = `Hapus ${record.name}`;
+        deleteBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+        deleteBtn.addEventListener('click', () => promptDelete(record));
+        actionWrap.appendChild(deleteBtn);
+      }
+
+      actionCell.appendChild(actionWrap);
+      tr.append(fileCell, deptCell, ownerCell, statusCell, actionCell);
+      els.resourceRows.appendChild(tr);
+    });
+
+    if (els.pageLabel) els.pageLabel.textContent = `${state.page} / ${pages}`;
+    if (els.prevPage) els.prevPage.disabled = state.page <= 1;
+    if (els.nextPage) els.nextPage.disabled = state.page >= pages;
+  }
+
+  function renderAttention() {
+    if (!els.attentionList) return;
+    const issues = buildAttentionIssues(state.data.records).slice(0, 8);
+    els.attentionList.replaceChildren();
+    if (els.attentionCount) els.attentionCount.textContent = buildAttentionIssues(state.data.records).length;
+
+    if (!issues.length) {
+      els.attentionList.appendChild(panelEmpty('Semua beres', 'Tidak ada dokumen yang butuh perhatian saat ini.'));
+      return;
+    }
+
+    issues.forEach(issue => {
+      const item = document.createElement('div');
+      item.className = 'attention-item';
+
+      const header = document.createElement('div');
+      header.className = 'attention-header';
+
+      const title = document.createElement('div');
+      title.className = 'attention-title';
+      title.textContent = issue.record.name;
+
+      const badge = document.createElement('span');
+      badge.className = 'mini-badge pending';
+      badge.textContent = issue.label;
+
+      header.append(title, badge);
+
+      const meta = document.createElement('div');
+      meta.className = 'attention-meta';
+      meta.textContent = `${departmentLabel(issue.record.department)} · ${issue.note}`;
+
+      item.append(header, meta);
+
+      if (isValidUrl(issue.record.url)) {
+        const action = document.createElement('a');
+        action.className = 'attention-action';
+        action.href = issue.record.url;
+        action.target = '_blank';
+        action.rel = 'noopener noreferrer';
+        action.textContent = 'Periksa Dokumen ↗';
+        item.appendChild(action);
+      }
+
+      els.attentionList.appendChild(item);
+    });
+  }
+
+  function getFilteredRecords() {
+    if (!state.data) return [];
+
+    return state.data.records
+      .filter(record => {
+        const departmentMatches = state.selectedDepartment === 'All' ||
+          record.department === state.selectedDepartment ||
+          record.department === 'All';
+        const statusMatches = state.selectedStatus === 'All' || record.status === state.selectedStatus;
+        const haystack = [
+          record.name,
+          record.description,
+          record.department,
+          departmentLabel(record.department),
+          record.owner,
+          record.status,
+          statusLabel(record.status)
+        ].join(' ').toLowerCase();
+        const searchMatches = !state.search || haystack.includes(state.search);
+        return departmentMatches && statusMatches && searchMatches;
+      })
+      .slice()
+      .sort((a, b) => statusRank(a.status) - statusRank(b.status) || a.name.localeCompare(b.name));
+  }
+
+  function setDepartment(value) {
+    state.selectedDepartment = value;
+    state.page = 1;
+    renderDynamicSections();
+  }
+
+  function renderDepartmentActiveState() {
+    if (!els.departmentNav) return;
+    els.departmentNav.querySelectorAll('[data-department]').forEach(button => {
+      button.classList.toggle('active', button.dataset.department === state.selectedDepartment);
+    });
+  }
+
+  function setActiveTopNav(view) {
+    document.querySelectorAll('[data-view]').forEach(button => {
+      button.classList.toggle('active', button.dataset.view === view);
+    });
+  }
+
+  function populateModalDepartments() {
+    if (!els.departmentField) return;
+    const current = els.departmentField.value;
+    els.departmentField.replaceChildren();
+
+    state.data.departments
+      .filter(item => item.value !== 'All')
+      .forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = departmentLabel(item.value);
+        option.title = item.label || item.value;
+        els.departmentField.appendChild(option);
+      });
+
+    const newOption = document.createElement('option');
+    newOption.value = '__NEW__';
+    newOption.textContent = '+ Tambah divisi baru...';
+    els.departmentField.appendChild(newOption);
+
+    if ([...els.departmentField.options].some(option => option.value === current)) {
+      els.departmentField.value = current;
+    }
+
+    syncNewDepartmentField();
+  }
+
+  function populateModalStatuses() {
+    if (!els.statusField) return;
+    els.statusField.replaceChildren();
+
+    state.data.statuses
+      .filter(item => item.value !== 'All')
+      .forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = item.label;
+        els.statusField.appendChild(option);
+      });
+  }
+
+  function openModal() {
+    if (!state.data) return;
+    resetForm();
+
+    if (els.modalTitle) els.modalTitle.textContent = 'Tambah Dokumen Baru';
+    if (els.formModeField) els.formModeField.value = 'create';
+    if (els.editRowField) els.editRowField.value = '';
+    if (els.editOriginalNameField) els.editOriginalNameField.value = '';
+    if (els.submitResource) els.submitResource.textContent = 'Simpan Dokumen';
+
+    if (state.selectedDepartment !== 'All') {
+      const exists = [...els.departmentField.options].some(option => option.value === state.selectedDepartment);
+      if (exists) els.departmentField.value = state.selectedDepartment;
+    }
+
+    syncNewDepartmentField();
+    if (els.modalBackdrop) {
+      els.modalBackdrop.classList.add('is-open');
+      els.modalBackdrop.setAttribute('aria-hidden', 'false');
+    }
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => {
+      if (els.resourceNameField) els.resourceNameField.focus();
+    }, 70);
+  }
+
+  function openEditModal(record) {
+    if (!state.data || !record) return;
+    resetForm();
+
+    if (els.modalTitle) els.modalTitle.textContent = 'Edit Dokumen';
+    if (els.formModeField) els.formModeField.value = 'edit';
+    if (els.editRowField) els.editRowField.value = record.id || '';
+    if (els.editOriginalNameField) els.editOriginalNameField.value = record.name || '';
+    if (els.submitResource) els.submitResource.textContent = 'Simpan Perubahan';
+
+    if (els.departmentField) {
+      const exists = [...els.departmentField.options].some(option => option.value === record.department);
+      if (exists) {
+        els.departmentField.value = record.department;
+      } else {
+        els.departmentField.value = '__NEW__';
+        if (els.newDepartmentField) els.newDepartmentField.value = record.department;
+      }
+    }
+
+    if (els.resourceNameField) els.resourceNameField.value = record.name || '';
+    if (els.descriptionField) els.descriptionField.value = record.description || '';
+    if (els.statusField) els.statusField.value = record.status || 'Active';
+    if (els.ownerEmailField) els.ownerEmailField.value = record.owner || '';
+    if (els.targetUrlField) els.targetUrlField.value = record.url || '';
+
+    syncNewDepartmentField();
+    if (els.modalBackdrop) {
+      els.modalBackdrop.classList.add('is-open');
+      els.modalBackdrop.setAttribute('aria-hidden', 'false');
+    }
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => {
+      if (els.resourceNameField) els.resourceNameField.focus();
+    }, 70);
+  }
+
+  function copyToClipboard(url, name) {
+    if (!url) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          showToast('Link Disalin', `Tautan untuk "${name}" telah disalin.`);
+        })
+        .catch(() => {
+          fallbackCopyToClipboard(url, name);
+        });
+    } else {
+      fallbackCopyToClipboard(url, name);
+    }
+  }
+
+  function fallbackCopyToClipboard(text, name) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      showToast('Link Disalin', `Tautan untuk "${name}" telah disalin.`);
+    } catch (_) {
+      showToast('Gagal Menyalin', 'Salin manual tautan dari browser.', 'error');
+    }
+    document.body.removeChild(textarea);
+  }
+
+  function closeModal() {
+    if (els.modalBackdrop) {
+      els.modalBackdrop.classList.remove('is-open');
+      els.modalBackdrop.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = '';
+  }
+
+  function promptDelete(record) {
+    state.pendingDelete = record;
+    if (els.deleteTargetName) els.deleteTargetName.textContent = record.name;
+    if (els.deleteModalBackdrop) {
+      els.deleteModalBackdrop.classList.add('is-open');
+      els.deleteModalBackdrop.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function closeDeleteModal() {
+    state.pendingDelete = null;
+    if (els.deleteModalBackdrop) {
+      els.deleteModalBackdrop.classList.remove('is-open');
+      els.deleteModalBackdrop.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function executeDelete() {
+    if (!state.pendingDelete) return;
+    const record = state.pendingDelete;
+    if (els.confirmDeleteBtn) {
+      els.confirmDeleteBtn.disabled = true;
+      els.confirmDeleteBtn.textContent = 'Menghapus...';
+    }
+
+    google.script.run
+      .withSuccessHandler(async result => {
+        if (els.confirmDeleteBtn) {
+          els.confirmDeleteBtn.disabled = false;
+          els.confirmDeleteBtn.textContent = 'Ya, Hapus';
+        }
+        closeDeleteModal();
+
+        try {
+          await loadPortal({ silent: true });
+          showToast('Dokumen Dihapus', result.message || `${record.name} berhasil dihapus.`);
+        } catch (_) {
+          showToast('Dokumen Dihapus', 'Data berhasil dihapus dari portal.', 'error');
+        }
+      })
+      .withFailureHandler(error => {
+        if (els.confirmDeleteBtn) {
+          els.confirmDeleteBtn.disabled = false;
+          els.confirmDeleteBtn.textContent = 'Ya, Hapus';
+        }
+        const normalized = normalizeError(error);
+        showToast('Gagal Menghapus', normalized.message, 'error');
+      })
+      .deletePortalResource({ name: record.name, url: record.url });
+  }
+
+  function resetForm() {
+    if (els.resourceForm) els.resourceForm.reset();
+    if (els.formMessage) {
+      els.formMessage.className = 'form-message hidden';
+      els.formMessage.replaceChildren();
+    }
+    if (els.submitResource) {
+      els.submitResource.disabled = false;
+      els.submitResource.textContent = 'Simpan Dokumen';
+    }
+    populateModalDepartments();
+    populateModalStatuses();
+  }
+
+  function syncNewDepartmentField() {
+    if (!els.departmentField || !els.newDepartmentFieldWrap) return;
+    const isNew = els.departmentField.value === '__NEW__';
+    els.newDepartmentFieldWrap.classList.toggle('hidden', !isNew);
+    if (els.newDepartmentField) {
+      els.newDepartmentField.required = isNew;
+      if (!isNew) els.newDepartmentField.value = '';
+    }
+  }
+
+  function submitResource(event) {
+    event.preventDefault();
+    hideFormMessage();
+    if (els.submitResource) {
+      els.submitResource.disabled = true;
+      els.submitResource.textContent = 'Menyimpan...';
+    }
+
+    const isEdit = (els.formModeField ? els.formModeField.value : '') === 'edit';
+
+    const payload = {
+      mode: isEdit ? 'edit' : 'create',
+      editRow: els.editRowField ? els.editRowField.value : '',
+      editOriginalName: els.editOriginalNameField ? els.editOriginalNameField.value : '',
+      department: els.departmentField.value,
+      newDepartment: els.newDepartmentField ? els.newDepartmentField.value : '',
+      resourceName: els.resourceNameField.value,
+      description: els.descriptionField.value,
+      status: els.statusField.value,
+      ownerEmail: els.ownerEmailField.value,
+      linkMode: 'existing',
+      targetUrl: els.targetUrlField.value
+    };
+
+    google.script.run
+      .withSuccessHandler(async result => {
+        showFormMessage('success', result.message, result.url);
+        if (els.submitResource) {
+          els.submitResource.disabled = false;
+          els.submitResource.textContent = isEdit ? 'Simpan Perubahan' : 'Simpan Dokumen';
+        }
+
+        try {
+          await loadPortal({ silent: true });
+          const toastTitle = isEdit ? 'Dokumen Diperbarui' : 'Dokumen Ditambahkan';
+          showToast(toastTitle, result.message || `${payload.resourceName} berhasil disimpan.`);
+          setTimeout(closeModal, 1200);
+        } catch (_) {
+          showToast('Dokumen Tersimpan', 'Data berhasil disimpan.', 'error');
+        }
+      })
+      .withFailureHandler(error => {
+        const normalized = normalizeError(error);
+        showFormMessage('error', normalized.message);
+        if (els.submitResource) {
+          els.submitResource.disabled = false;
+          els.submitResource.textContent = 'Coba Lagi';
+        }
+      })
+      .savePortalResource(payload);
+  }
+
+  function showFormMessage(type, message, url) {
+    if (!els.formMessage) return;
+    els.formMessage.className = `form-message ${type}`;
+    els.formMessage.replaceChildren();
+
+    const text = document.createElement('span');
+    text.textContent = message;
+    els.formMessage.appendChild(text);
+
+    if (type === 'success' && url) {
+      els.formMessage.appendChild(document.createElement('br'));
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Buka file sekarang ↗';
+      link.style.fontWeight = '600';
+      link.style.textDecoration = 'underline';
+      els.formMessage.appendChild(link);
+    }
+  }
+
+  function hideFormMessage() {
+    if (!els.formMessage) return;
+    els.formMessage.className = 'form-message hidden';
+    els.formMessage.replaceChildren();
+  }
+
+  function buildAttentionIssues(records) {
+    return (records || []).map(record => {
+      if (record.status === 'Pending') {
+        return { type: 'pending', label: 'MENUNGGU', note: 'Status dokumen masih menunggu konfirmasi.', priority: 1, record };
+      }
+      if (!isValidUrl(record.url)) {
+        return { type: 'link', label: 'LINK KOSONG', note: 'Tautan file belum diisi.', priority: 2, record };
+      }
+      if (!record.owner) {
+        return { type: 'owner', label: 'PIC KOSONG', note: 'PIC penanggung jawab belum terisi.', priority: 3, record };
+      }
+      return null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.priority - b.priority || a.record.name.localeCompare(b.record.name));
+  }
+
+  function makeStatusPill(status) {
+    const pill = document.createElement('span');
+    const key = status === 'Active' ? 'active' : status === 'Pending' ? 'pending' : 'archived';
+    pill.className = `badge-status ${key}`;
+    pill.textContent = statusLabel(status || 'Archived');
+    return pill;
+  }
+
+  function makeOpenLink(url) {
+    if (!isValidUrl(url)) {
+      const span = document.createElement('span');
+      span.className = 'action-link disabled';
+      span.style.opacity = '0.4';
+      span.style.cursor = 'default';
+      span.textContent = 'Belum Ada';
+      return span;
+    }
+
+    const link = document.createElement('a');
+    link.className = 'action-link';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.innerHTML = `<span>Buka</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
+    return link;
+  }
+
+  function panelEmpty(title, detail) {
+    const div = document.createElement('div');
+    div.className = 'empty-state';
+    div.style.padding = '24px 16px';
+
+    const strong = document.createElement('strong');
+    strong.textContent = title;
+    strong.style.fontSize = '0.88rem';
+
+    const span = document.createElement('span');
+    span.textContent = detail;
+    span.style.fontSize = '0.78rem';
+
+    div.append(strong, span);
+    return div;
+  }
+
+  function showToast(title, detail, type = 'success') {
+    if (!els.toastRegion) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+
+    const icon = document.createElement('span');
+    icon.innerHTML = type === 'error'
+      ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    const copy = document.createElement('div');
+    const strong = document.createElement('strong');
+    strong.textContent = title;
+    strong.style.display = 'block';
+
+    const span = document.createElement('span');
+    span.textContent = detail;
+    span.style.fontSize = '0.76rem';
+    span.style.opacity = '0.85';
+
+    copy.append(strong, span);
+    toast.append(icon, copy);
+    els.toastRegion.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+  }
+
+  function setRefreshing(refreshing) {
+    [els.refreshNav, els.refreshTop].forEach(button => {
+      if (button) {
+        button.disabled = refreshing;
+        button.style.opacity = refreshing ? '.6' : '';
+      }
+    });
+    if (els.app) els.app.classList.toggle('is-refreshing', refreshing);
+  }
+
+  function finishLoading() {
+    if (els.app) els.app.classList.remove('is-loading');
+    if (els.loadingScreen) els.loadingScreen.classList.add('is-hidden');
+  }
+
+  function showFatal(error) {
+    const normalized = normalizeError(error);
+    if (!els.loadingScreen) return;
+    els.loadingScreen.replaceChildren();
+
+    const card = document.createElement('div');
+    card.className = 'panel';
+    card.style.padding = '32px 28px';
+    card.style.maxWidth = '440px';
+    card.style.textAlign = 'center';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.alignItems = 'center';
+    card.style.gap = '12px';
+
+    const mark = document.createElement('div');
+    mark.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+    const title = document.createElement('strong');
+    title.textContent = 'Portal Belum Terhubung';
+    title.style.fontSize = '1.1rem';
+
+    const detail = document.createElement('span');
+    detail.textContent = normalized.message;
+    detail.style.fontSize = '0.85rem';
+    detail.style.color = 'var(--text-secondary)';
+
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'primary-action';
+    retry.textContent = 'Muat Ulang';
+    retry.addEventListener('click', () => {
+      els.loadingScreen.classList.remove('is-hidden');
+      init();
+    });
+
+    card.append(mark, title, detail, retry);
+    els.loadingScreen.appendChild(card);
+  }
+
+  function openSidebar() {
+    if (els.sidebar) els.sidebar.classList.add('is-open');
+    if (els.sidebarBackdrop) els.sidebarBackdrop.classList.add('is-open');
+  }
+
+  function closeSidebar() {
+    if (els.sidebar) els.sidebar.classList.remove('is-open');
+    if (els.sidebarBackdrop) els.sidebarBackdrop.classList.remove('is-open');
+  }
+
+  function scrollToDirectory() {
+    if (els.directoryPanel) {
+      els.directoryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function totalPages(count) {
+    return Math.max(1, Math.ceil(count / state.pageSize));
+  }
+
+  function resultSummary(count) {
+    const department = state.selectedDepartment === 'All' ? 'semua divisi' : departmentLabel(state.selectedDepartment);
+    return `${count} file ditemukan · ${department}`;
+  }
+
+  function readableName(localPart) {
+    return localPart
+      .replace(/[._-]+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  function ownerDisplay(email) {
+    if (!email) return 'Belum ada';
+    const at = email.indexOf('@');
+    return at > 0 ? email.slice(0, at) : email;
+  }
+
+  function statusRank(status) {
+    return ({ Active: 1, Pending: 2, Archived: 3 })[status] || 9;
+  }
+
+  function rawDepartmentLabel(value) {
+    const match = state.data && state.data.departments ? state.data.departments.find(item => item.value === value) : null;
+    return match ? match.label : value || 'Semua';
+  }
+
+  function departmentLabel(value) {
+    const label = rawDepartmentLabel(value);
+    const normalized = label.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    if (normalized === 'research and development jahit' ||
+        normalized === 'research & development jahit') {
+      return 'R&D Jahit';
+    }
+
+    return label;
+  }
+
+  function statusLabel(value) {
+    const match = state.data && state.data.statuses ? state.data.statuses.find(item => item.value === value) : null;
+    return match ? match.label : value || 'Belum ada';
+  }
+
+  function isValidUrl(value) {
+    return /^https?:\/\//i.test(String(value || '').trim());
+  }
+
+  function formatNumber(value) {
+    try { return new Intl.NumberFormat('id-ID').format(value || 0); }
+    catch (_) { return String(value || 0); }
+  }
+
+  function normalizeError(error) {
+    if (error instanceof Error) return error;
+    return new Error(error && error.message ? error.message : String(error || 'Terjadi kesalahan sistem.'));
+  }
+})();
+</script>

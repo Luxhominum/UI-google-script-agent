@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PGE Company Portal</title>
+  <link rel="icon" type="image/png" href="<?!= getPortalLogoUri_() ?>">
+  <link rel="shortcut icon" type="image/png" href="<?!= getPortalLogoUri_() ?>">
+  <?!= include_('Styles'); ?>
+</head>
+<body>
+  <div id="app" class="app-shell is-loading">
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="sidebar" aria-label="Portal Navigation">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img id="brandLogoImg" src="<?!= getPortalLogoUri_() ?>" alt="Logo CV Pusat Grosir Eceran" class="brand-logo-img">
+          <span class="brand-text">PGE Portal</span>
+        </div>
+        <button id="sidebarClose" class="sidebar-close" type="button" aria-label="Tutup navigasi">✕</button>
+      </div>
+
+      <nav class="nav-stack">
+        <div class="nav-section">
+          <div class="nav-label">Navigasi</div>
+          <button class="nav-item active" type="button" data-view="dashboard">
+            <div class="nav-item-content">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </span>
+              <span>Dashboard</span>
+            </div>
+          </button>
+          <button class="nav-item" type="button" data-view="all">
+            <div class="nav-item-content">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              </span>
+              <span>Semua Dokumen</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="nav-section department-nav-section">
+          <div class="nav-label">Divisi</div>
+          <div id="departmentNav" class="department-nav"></div>
+        </div>
+
+        <div class="nav-section nav-management">
+          <div class="nav-label">Kelola</div>
+          <button id="addFileNav" class="nav-item" type="button">
+            <div class="nav-item-content">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </span>
+              <span>Tambah File</span>
+            </div>
+          </button>
+          <button id="refreshNav" class="nav-item" type="button">
+            <div class="nav-item-content">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              </span>
+              <span>Segarkan Data</span>
+            </div>
+          </button>
+        </div>
+      </nav>
+
+      <div class="sidebar-account">
+        <div class="avatar" id="accountAvatar">P</div>
+        <div class="account-copy">
+          <strong id="accountName">PGE Internal</strong>
+          <span id="accountEmail">Pusat File & Operasional</span>
+        </div>
+      </div>
+    </aside>
+
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-shell">
+      <header class="topbar">
+        <div class="topbar-copy">
+          <div class="mobile-title-row">
+            <button id="sidebarOpen" class="menu-button" type="button" aria-label="Buka menu">☰</button>
+            <h1>Dashboard</h1>
+          </div>
+          <p>Direktori dokumen, tracker, SOP, dan link kerja CV Pusat Grosir Eceran.</p>
+        </div>
+
+        <div class="topbar-actions">
+          <label class="search-box" for="globalSearch">
+            <span class="search-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input id="globalSearch" type="search" autocomplete="off" placeholder="Cari dokumen...">
+            <kbd id="searchHint">/</kbd>
+          </label>
+          <button id="refreshTop" class="round-action" type="button" aria-label="Refresh portal" title="Segarkan data">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          </button>
+          <button id="addFileTop" class="primary-action" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Tambah File</span>
+          </button>
+        </div>
+      </header>
+
+      <section id="dashboardContent" class="dashboard-content">
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid" aria-label="Portal summary">
+          <article class="kpi-card">
+            <div class="kpi-heading">
+              <span class="kpi-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </span>
+              <span>Total File</span>
+            </div>
+            <div id="kpiTotal" class="kpi-value">0</div>
+            <div id="kpiTotalMeta" class="kpi-meta"><span class="mini-badge neutral">Portal</span><span>semua arsip</span></div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-heading">
+              <span class="kpi-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span>File Aktif</span>
+            </div>
+            <div id="kpiActive" class="kpi-value">0</div>
+            <div id="kpiActiveMeta" class="kpi-meta"><span class="mini-badge success">0%</span><span>siap diakses</span></div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-heading">
+              <span class="kpi-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <span>Menunggu</span>
+            </div>
+            <div id="kpiPending" class="kpi-value">0</div>
+            <div class="kpi-meta"><span class="mini-badge pending">Perlu Cek</span><span>butuh tindak lanjut</span></div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-heading">
+              <span class="kpi-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </span>
+              <span>Divisi Terdaftar</span>
+            </div>
+            <div id="kpiDepartments" class="kpi-value">0</div>
+            <div class="kpi-meta"><span class="mini-badge info">PGE</span><span>unit operasional</span></div>
+          </article>
+        </div>
+
+        <!-- Overview Section: Quick Access & Distribution -->
+        <div class="overview-grid">
+          <section class="panel quick-panel">
+            <div class="panel-header">
+              <div>
+                <span class="eyebrow">Shortcut</span>
+                <h2>Akses Cepat</h2>
+              </div>
+              <button id="showAllQuick" class="text-action" type="button">Lihat semua ›</button>
+            </div>
+            <div id="quickAccessList" class="quick-list"></div>
+          </section>
+
+          <section class="panel distribution-panel">
+            <div class="panel-header">
+              <div>
+                <span class="eyebrow">Distribusi</span>
+                <h2>Dokumen per Divisi</h2>
+              </div>
+              <span id="divisionCountLabel" class="panel-tag">0 divisi</span>
+            </div>
+            <div id="divisionBars" class="division-bars"></div>
+          </section>
+        </div>
+
+        <!-- Directory Table & Attention Checklist -->
+        <div class="directory-grid">
+          <section id="directoryPanel" class="panel directory-panel">
+            <div class="panel-header directory-header">
+              <div>
+                <span class="eyebrow">Direktori</span>
+                <h2>Daftar Dokumen</h2>
+                <p id="resultSummary">0 file ditemukan</p>
+              </div>
+              <div class="directory-controls">
+                <label class="select-control">
+                  <span>Status:</span>
+                  <select id="statusFilter"></select>
+                </label>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="resource-table">
+                <thead>
+                  <tr>
+                    <th>Dokumen / Keterangan</th>
+                    <th>Divisi</th>
+                    <th>Penanggung Jawab</th>
+                    <th>Status</th>
+                    <th class="align-right">Tindakan</th>
+                  </tr>
+                </thead>
+                <tbody id="resourceRows"></tbody>
+              </table>
+            </div>
+
+            <div id="emptyDirectory" class="empty-state hidden">
+              <div class="empty-icon">📂</div>
+              <strong>Tidak ada file yang cocok</strong>
+              <span>Silakan sesuaikan kata kunci pencarian, filter status, atau divisi.</span>
+            </div>
+
+            <div id="pagination" class="pagination">
+              <button id="prevPage" class="pagination-button" type="button" aria-label="Halaman sebelumnya">‹</button>
+              <span id="pageLabel">1 / 1</span>
+              <button id="nextPage" class="pagination-button" type="button" aria-label="Halaman berikutnya">›</button>
+            </div>
+          </section>
+
+          <aside class="panel attention-panel">
+            <div class="panel-header">
+              <div>
+                <span class="eyebrow">Pengingat</span>
+                <h2>Perlu Dicek</h2>
+              </div>
+              <span id="attentionCount" class="panel-tag warning">0</span>
+            </div>
+            <div id="attentionList" class="attention-list"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loader-spinner"></div>
+    <div class="loader-copy">Memuat PGE Portal...</div>
+  </div>
+
+  <!-- Add / Edit Resource Modal -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div id="resourceModal" class="modal-window">
+      <div class="modal-header">
+        <h3 id="modalTitle">Tambah Dokumen Baru</h3>
+        <button id="modalClose" class="modal-close-btn" type="button" aria-label="Tutup popup">✕</button>
+      </div>
+
+      <form id="resourceForm" class="modal-form">
+        <input type="hidden" id="formModeField" value="create">
+        <input type="hidden" id="editRowField" value="">
+        <input type="hidden" id="editOriginalNameField" value="">
+
+        <div class="form-group">
+          <label for="departmentField">Divisi</label>
+          <select id="departmentField" required></select>
+        </div>
+
+        <div id="newDepartmentFieldWrap" class="form-group hidden">
+          <label for="newDepartmentField">Nama Divisi Baru</label>
+          <input id="newDepartmentField" type="text" placeholder="Contoh: Logistik & Gudang">
+        </div>
+
+        <div class="form-group">
+          <label for="resourceNameField">Nama File / Dokumen</label>
+          <input id="resourceNameField" type="text" placeholder="Contoh: SOP Rekap Penjualan 2026" required>
+        </div>
+
+        <div class="form-group">
+          <label for="descriptionField">Deskripsi Ringkas</label>
+          <textarea id="descriptionField" rows="2" placeholder="Catatan kegunaan atau petunjuk pengisian" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="statusField">Status</label>
+          <select id="statusField" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="ownerEmailField">PIC / Email Penanggung Jawab</label>
+          <input id="ownerEmailField" type="email" placeholder="nama@perusahaan.com">
+        </div>
+
+        <div id="targetUrlWrap" class="form-group">
+          <label for="targetUrlField">URL File / Spreadsheet / Drive</label>
+          <input id="targetUrlField" type="url" placeholder="https://docs.google.com/spreadsheets/d/...">
+        </div>
+
+        <p id="createNotice" class="form-notice">
+          Tautan dapat dikosongkan jika Anda ingin menghubungkan URL nantinya.
+        </p>
+
+        <div id="formMessage" class="form-message hidden"></div>
+
+        <div class="modal-actions">
+          <button id="cancelModal" class="secondary-btn" type="button">Batal</button>
+          <button id="submitResource" class="primary-action" type="submit">Simpan Dokumen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModalBackdrop" class="modal-backdrop">
+    <div class="modal-window" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 style="color: #B91C1C;">Hapus Dokumen</h3>
+        <button id="deleteModalClose" class="modal-close-btn" type="button" aria-label="Tutup">✕</button>
+      </div>
+      <div class="modal-form">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+          Apakah Anda yakin ingin menghapus <strong id="deleteTargetName" style="color: var(--text-primary);"></strong> dari portal?
+        </p>
+        <p class="form-notice" style="color: #B91C1C;">
+          Tindakan ini akan menghapus baris data dari Google Sheet Data_Source.
+        </p>
+        <div class="modal-actions" style="margin-top: 12px;">
+          <button id="cancelDeleteModal" class="secondary-btn" type="button">Batal</button>
+          <button id="confirmDeleteBtn" class="danger-btn" type="button">Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Region -->
+  <div id="toastRegion" class="toast-region"></div>
+
+  <?!= include_('Scripts'); ?>
+</body>
+</html>
